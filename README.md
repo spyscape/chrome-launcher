@@ -90,6 +90,10 @@ npm install chrome-launcher
 
   // (optional) A dict of environmental key value pairs to pass to the spawned chrome process.
   envVars: {[key: string]: string};
+
+  // pass through stdOut and stdErr to parent process, instead of writing to files
+  passStdOut: boolean;
+  passStdErr: boolean;
 };
 ```
 

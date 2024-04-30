@@ -42,6 +42,8 @@ export interface Options {
   connectionPollInterval?: number;
   maxConnectionRetries?: number;
   envVars?: {[key: string]: string|undefined};
+  passStdOut?: boolean;
+  passStdErr?: boolean;
 }
 
 export interface LaunchedChrome {
@@ -127,6 +129,8 @@ class Launcher {
   private spawn: typeof childProcess.spawn;
   private useDefaultProfile: boolean;
   private envVars: {[key: string]: string|undefined};
+  private passStdOut: boolean;
+  private passStdErr: boolean;
 
   chromeProcess?: childProcess.ChildProcess;
   userDataDir?: string;
@@ -150,6 +154,8 @@ class Launcher {
     this.connectionPollInterval = defaults(this.opts.connectionPollInterval, 500);
     this.maxConnectionRetries = defaults(this.opts.maxConnectionRetries, 50);
     this.envVars = defaults(opts.envVars, Object.assign({}, process.env));
+    this.passStdOut = defaults(this.opts.passStdOut, false);
+    this.passStdErr = defaults(this.opts.passStdErr, false);
 
     if (typeof this.opts.userDataDir === 'boolean') {
       if (!this.opts.userDataDir) {
@@ -299,7 +305,6 @@ class Launcher {
         return this.chromeProcess.pid;
       }
 
-
       // If a zero value port is set, it means the launcher
       // is responsible for generating the port number.
       // We do this here so that we can know the port before
@@ -308,14 +313,17 @@ class Launcher {
         this.port = await getRandomPort();
       }
 
+      const stdOut =  this.passStdOut ? 'inherit' : this.outFile;
+      const stdErr = this.passStdErr ? 'inherit' : this.errFile;
+
       log.verbose(
-          'ChromeLauncher', `Launching with command:\n"${execPath}" ${this.flags.join(' ')}`);
+          'ChromeLauncher', `Launching with stdio stdOut:${stdOut} and stdErr:${stdErr}, command:\n"${execPath}" ${this.flags.join(' ')}`);
       this.chromeProcess = this.spawn(execPath, this.flags, {
         // On non-windows platforms, `detached: true` makes child process a leader of a new
         // process group, making it possible to kill child process tree with `.kill(-pid)` command.
         // @see https://nodejs.org/api/child_process.html#child_process_options_detached
         detached: process.platform !== 'win32',
-        stdio: ['ignore', this.outFile, this.errFile],
+        stdio: ['ignore', stdOut, stdErr],
         env: this.envVars
       });
 
